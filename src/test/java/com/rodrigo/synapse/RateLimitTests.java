@@ -63,7 +63,8 @@ public class RateLimitTests {
                 }
                 """;
     }
-    private String userEmail1(){
+
+    private String userEmail1() {
         return """
                 {
                     "email": "email1@email.com",
@@ -71,7 +72,8 @@ public class RateLimitTests {
                 }
                 """;
     }
-    private String userEmail2(){
+
+    private String userEmail2() {
         return """
                 {
                     "email": "email2@email.com",
@@ -96,7 +98,7 @@ public class RateLimitTests {
     }
 
     @Test
-    void deveAplicarRateLimitPorIp() throws Exception {
+    void deveAplicarRateLimitPorIpLogin() throws Exception {
         registerValidUser();
 
         for (int i = 0; i < 3; i++) {
@@ -141,5 +143,48 @@ public class RateLimitTests {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(validUserJson()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void deveAplicarRateLimitPorIpRegister() throws Exception {
+        mockMvc.perform(
+                post("/auth/register")
+                        .with(request -> {
+                            request.setRemoteAddr("192.168.1.10");
+                            return request;
+                        })
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validUserJson()))
+                .andExpect(status().isCreated());
+
+        for (int i = 0; i < 4; i++){
+            mockMvc.perform(
+                            post("/auth/register")
+                                    .with(request -> {
+                                        request.setRemoteAddr("192.168.1.10");
+                                        return request;
+                                    })
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(validUserJson()))
+                    .andExpect(status().isConflict());
+        }
+        mockMvc.perform(
+                        post("/auth/register")
+                                .with(request -> {
+                                    request.setRemoteAddr("192.168.1.10");
+                                    return request;
+                                })
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validUserJson()))
+                .andExpect(status().isTooManyRequests());
+        mockMvc.perform(
+                        post("/auth/register")
+                                .with(request -> {
+                                    request.setRemoteAddr("192.168.1.20");
+                                    return request;
+                                })
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validUserJson()))
+                .andExpect(status().isConflict());
     }
 }
