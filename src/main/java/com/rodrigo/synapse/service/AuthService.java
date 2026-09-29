@@ -12,8 +12,6 @@ import com.rodrigo.synapse.repository.UserRepository;
 import io.github.bucket4j.Bucket;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
 import java.time.Duration;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +25,9 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Value("${security.auth.dummy-password-hash}")
+    private String dummyPasswordHash;
 
     @Autowired
     UserRepository userRepository;
@@ -71,7 +72,16 @@ public class AuthService {
             throw new TooManyRequestsException("Too many requests");
         }
         UserEntity user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));
+                .orElse(null);
+
+        String passwordHash = user != null
+                ? user.getPasswordHash()
+                : dummyPasswordHash;
+
+        if (!passwordEncoder.matches(request.getPassword(), passwordHash)) {
+            throw new InvalidCredentialsException("Invalid credentials");
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new InvalidCredentialsException("Invalid credentials");
         }
