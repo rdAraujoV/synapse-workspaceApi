@@ -301,14 +301,14 @@ public class AuthTests {
                                         HttpHeaders.AUTHORIZATION,
                                         "Bearer invalid-token"
                                 ))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void naoDeveAcessarEndPointProtegidoSemToken() throws Exception {
         mockMvc.perform(
                         get("/users/me"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -320,7 +320,7 @@ public class AuthTests {
                                         HttpHeaders.AUTHORIZATION,
                                         "Bearer " + token
                                 ))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -336,6 +336,6 @@ public class AuthTests {
                                         HttpHeaders.AUTHORIZATION,
                                         "Bearer " + expiredToken
                                 ))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }
