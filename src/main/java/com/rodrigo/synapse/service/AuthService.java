@@ -3,7 +3,6 @@ package com.rodrigo.synapse.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rodrigo.synapse.entity.UserEntity;
-import com.rodrigo.synapse.exception.EmailAlreadyExistsException;
 import com.rodrigo.synapse.exception.InvalidCredentialsException;
 import com.rodrigo.synapse.exception.TooManyRequestsException;
 import com.rodrigo.synapse.dto.RegisterDTO;
@@ -44,9 +43,8 @@ public class AuthService {
         UserEntity user = new UserEntity();
         // Exception for duplicated email
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new EmailAlreadyExistsException("Email already used");
+            return;
         }
-
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setCreatedAt(LocalDateTime.now());

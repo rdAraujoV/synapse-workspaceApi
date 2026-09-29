@@ -123,7 +123,7 @@ public class AuthTests {
                         post("/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(validUserJson()))
-                .andExpect(status().isConflict());
+                .andExpect(status().isCreated());
 
         assertEquals(1, userRepository.count());
     }
