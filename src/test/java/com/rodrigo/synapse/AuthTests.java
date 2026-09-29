@@ -165,6 +165,38 @@ public class AuthTests {
     }
 
     @Test
+    void naoDeveRegistrarEmailVazio() throws Exception {
+        String json = """
+                {
+                    "email": "",
+                    "password": "12345678Ii@#$"
+                }
+                """;
+        mockMvc.perform(
+                        post("/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(json))
+                .andExpect(status().isBadRequest());
+        assertEquals(0, userRepository.count());
+    }
+
+    @Test
+    void naoDeveRegistrarSenhaVazia() throws Exception {
+        String json = """
+                {
+                    "email": "email@email",
+                    "password": ""
+                }
+                """;
+        mockMvc.perform(
+                        post("/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(json))
+                .andExpect(status().isBadRequest());
+        assertEquals(0, userRepository.count());
+    }
+
+    @Test
     void deveFazerLoginComCredenciaisValidas() throws Exception {
         registerValidUser();
 
