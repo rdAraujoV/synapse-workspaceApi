@@ -52,7 +52,7 @@ public class AuthRateLimitFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        if (!request.getRequestURI().startsWith("/auth/login")) {
+        if (!request.getRequestURI().startsWith("/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -13,7 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -63,7 +63,8 @@ public class RateLimitTests {
                 }
                 """;
     }
-    private String userEmail1(){
+
+    private String userEmail1() {
         return """
                 {
                     "email": "email1@email.com",
@@ -71,7 +72,8 @@ public class RateLimitTests {
                 }
                 """;
     }
-    private String userEmail2(){
+
+    private String userEmail2() {
         return """
                 {
                     "email": "email2@email.com",
@@ -96,7 +98,7 @@ public class RateLimitTests {
     }
 
     @Test
-    void deveAplicarRateLimitPorIp() throws Exception {
+    void deveAplicarRateLimitPorIpLogin() throws Exception {
         registerValidUser();
 
         for (int i = 0; i < 3; i++) {
@@ -141,5 +143,88 @@ public class RateLimitTests {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(validUserJson()))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void deveAplicarRateLimitPorIpRegister() throws Exception {
+        mockMvc.perform(
+                        post("/auth/register")
+                                .with(request -> {
+                                    request.setRemoteAddr("192.168.1.10");
+                                    return request;
+                                })
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validUserJson()))
+                .andExpect(status().isCreated());
+
+        for (int i = 0; i < 4; i++) {
+            mockMvc.perform(
+                            post("/auth/register")
+                                    .with(request -> {
+                                        request.setRemoteAddr("192.168.1.10");
+                                        return request;
+                                    })
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(validUserJson()))
+                    .andExpect(status().isCreated());
+        }
+        mockMvc.perform(
+                        post("/auth/register")
+                                .with(request -> {
+                                    request.setRemoteAddr("192.168.1.10");
+                                    return request;
+                                })
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validUserJson()))
+                .andExpect(status().isTooManyRequests());
+        mockMvc.perform(
+                        post("/auth/register")
+                                .with(request -> {
+                                    request.setRemoteAddr("192.168.1.20");
+                                    return request;
+                                })
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(validUserJson()))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void naoDeveBurlarRateLimitComXForwardedFor() throws Exception {
+        String body = """
+                {"email": "user%d@email.com", "password": "12345678Ii@#$"}
+                """;
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/auth/login")
+                            .with(r -> {
+                                r.setRemoteAddr("192.168.1.10");
+                                return r;
+                            })
+                            .header("X-Forwarded-For", "10.0.0." + i)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body.formatted(i)))
+                    .andExpect(status().isUnauthorized());
+        }
+        mockMvc.perform(post("/auth/login")
+                        .with(r -> {
+                            r.setRemoteAddr("192.168.1.10");
+                            return r;
+                        })
+                        .header("X-Forwarded-For", "10.0.0.99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body.formatted(99)))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void deveAplicarRateLimitPorEmailLogin() throws Exception {
+        registerValidUser();
+        for (int i = 0; i < 4; i++) {
+            mockMvc.perform(post("/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON).content(validUserJson()))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON).content(validUserJson()))
+                .andExpect(status().isTooManyRequests());
     }
 }

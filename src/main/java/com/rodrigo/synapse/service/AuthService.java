@@ -3,7 +3,6 @@ package com.rodrigo.synapse.service;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rodrigo.synapse.entity.UserEntity;
-import com.rodrigo.synapse.exception.EmailAlreadyExistsException;
 import com.rodrigo.synapse.exception.InvalidCredentialsException;
 import com.rodrigo.synapse.exception.TooManyRequestsException;
 import com.rodrigo.synapse.dto.RegisterDTO;
@@ -13,10 +12,10 @@ import com.rodrigo.synapse.repository.UserRepository;
 import io.github.bucket4j.Bucket;
 
 import java.time.LocalDateTime;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Map;
 import java.time.Duration;
+import java.util.UUID;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,6 +27,13 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    private String dummyHash;
+
+    @PostConstruct
+    void initDummyHash() {
+        this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
 
     @Autowired
     UserRepository userRepository;
@@ -44,9 +50,8 @@ public class AuthService {
         UserEntity user = new UserEntity();
         // Exception for duplicated email
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new EmailAlreadyExistsException("Email already used");
+            return;
         }
-
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setCreatedAt(LocalDateTime.now());
@@ -73,10 +78,15 @@ public class AuthService {
             throw new TooManyRequestsException("Too many requests");
         }
         UserEntity user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid credentials"));
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+                .orElse(null);
+
+        String passwordHash = user != null
+                ? user.getPasswordHash()
+                : dummyHash;
+
+        if (!passwordEncoder.matches(request.getPassword(), passwordHash)) {
             throw new InvalidCredentialsException("Invalid credentials");
         }
-        return jwtService.generateToken(user.getEmail());
+        return jwtService.generateToken(user.getId());
     }
 }
