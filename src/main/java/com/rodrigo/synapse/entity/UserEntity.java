@@ -1,6 +1,7 @@
 package com.rodrigo.synapse.entity;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,9 +14,9 @@ import jakarta.persistence.Table;
 @Table(name="users")
 public class UserEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")
-    private Long id;
+    private UUID id;
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
     @Column(name = "password_hash", nullable = false, length = 255)
@@ -24,10 +25,10 @@ public class UserEntity {
     private LocalDateTime createdAt;
 
     // getters e setters
-    public Long getId(){
+    public UUID getId(){
         return id;
     }
-    public void setId(Long id){
+    public void setId(UUID id){
         this.id = id;
     }
 

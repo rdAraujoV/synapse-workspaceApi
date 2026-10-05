@@ -13,7 +13,9 @@ import io.github.bucket4j.Bucket;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
+import java.util.UUID;
 
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,8 +28,12 @@ public class AuthService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    @Value("${security.auth.dummy-password-hash}")
-    private String dummyPasswordHash;
+    private String dummyHash;
+
+    @PostConstruct
+    void initDummyHash() {
+        this.dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
 
     @Autowired
     UserRepository userRepository;
@@ -76,15 +82,11 @@ public class AuthService {
 
         String passwordHash = user != null
                 ? user.getPasswordHash()
-                : dummyPasswordHash;
+                : dummyHash;
 
         if (!passwordEncoder.matches(request.getPassword(), passwordHash)) {
             throw new InvalidCredentialsException("Invalid credentials");
         }
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new InvalidCredentialsException("Invalid credentials");
-        }
-        return jwtService.generateToken(user.getEmail());
+        return jwtService.generateToken(user.getId());
     }
 }

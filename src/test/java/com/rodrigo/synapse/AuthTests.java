@@ -26,7 +26,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.springframework.http.MediaType;
@@ -35,7 +35,7 @@ import org.springframework.http.MediaType;
 import com.rodrigo.synapse.entity.UserEntity;
 import com.rodrigo.synapse.repository.UserRepository;
 
-import java.util.Date;
+import java.util.UUID;
 
 @Testcontainers
 @SpringBootTest
@@ -129,6 +129,27 @@ public class AuthTests {
     }
 
     @Test
+    void registroDuplicadoNaoDeveSobrescreverSenha() throws Exception {
+        registerValidUser();
+        String other = """
+                {
+                   "email": "email@email.com",
+                   "password": "OutraSenha123@#"
+                }
+                """;
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON).content(other))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON).content(validUserJson()))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON).content(other))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void naoDeveRegistrarEmailInvalido() throws Exception {
         String json = """
                 {
@@ -184,7 +205,7 @@ public class AuthTests {
     void naoDeveRegistrarSenhaVazia() throws Exception {
         String json = """
                 {
-                    "email": "email@email",
+                    "email": "email@email.com",
                     "password": ""
                 }
                 """;
@@ -326,7 +347,7 @@ public class AuthTests {
     @Test
     void naoDeveAcessarEndPointProtegidoComTokenExpirado() throws Exception {
         String expiredToken = jwtService.generateToken(
-                "email@email.com",
+                UUID.randomUUID(),
                 -60_000
         );
 

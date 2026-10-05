@@ -2,6 +2,7 @@ package com.rodrigo.synapse.config;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.UUID;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,9 +38,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         if (jwtService.isTokenValid(token)) {
-            String email = jwtService.extractEmail(token);
+            UUID userId = jwtService.extractUserId(token);
             var authentication = new UsernamePasswordAuthenticationToken(
-                    email, null, Collections.emptyList());
+                    userId, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
